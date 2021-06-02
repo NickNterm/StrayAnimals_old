@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">StrayAnimals</string>
     <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="refresh">Refresh</string>
+    <string name="new_account">New Account</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

@@ -28,8 +28,15 @@ if($_GET["task"] == "ReadAccountByToken"){
             echo $myJSON;
         }
     } else {
-    echo "0 results";
+    echo "";
+    }
+}else if($_GET["task"] == "SaveAccount"){
+    $Account = json_decode($_GET["value"]);
+    $sql = "INSERT INTO Login (token, name, phone, email) VALUES ('".$Account->token."', '".$Account->name."', '".$Account->phone."', '".$Account->email."')";
+    if ($conn->query($sql) === TRUE) {
+        echo "ok";
+    } else {
+        echo "";
     }
 }
 $conn->close();
-?> 
