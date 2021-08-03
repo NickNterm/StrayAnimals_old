@@ -4,9 +4,9 @@ import android.os.Parcel
 import android.os.Parcelable
 
 data class Post(
-    val accountId: String?,
-    val photoLocation: String?,
-    val MoreInfo: String?
+    val account_id: String?,
+    val photo: String?,
+    val more_info: String?
 ):Parcelable {
     constructor(parcel: Parcel) : this(
         parcel.readString(),
@@ -16,9 +16,9 @@ data class Post(
     }
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
-        parcel.writeString(accountId)
-        parcel.writeString(photoLocation)
-        parcel.writeString(MoreInfo)
+        parcel.writeString(account_id)
+        parcel.writeString(photo)
+        parcel.writeString(more_info)
     }
 
     override fun describeContents(): Int {

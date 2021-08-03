@@ -1,9 +1,5 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "iqsoft";
-$dbname = "StrayAnimals";
-
+include 'DatabaseLogin.php';
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 // Check connection
@@ -28,7 +24,7 @@ if($_GET["task"] == "ReadAccountByToken"){
             echo $myJSON;
         }
     } else {
-    echo "null";
+        echo "null";
     }
 }else if($_GET["task"] == "ReadAccountById"){
     $sql = "SELECT * FROM Login WHERE token IN " . $_GET["value"];
@@ -55,17 +51,37 @@ if($_GET["task"] == "ReadAccountByToken"){
         }
         echo "]";
     } else {
-    echo "null";
+        echo "null";
     }
-}
-
-else if($_GET["task"] == "SaveAccount"){
+} else if($_GET["task"] == "SaveAccount"){
     $Account = json_decode($_GET["value"]);
     $sql = "INSERT INTO Login (token, name, phone, email, banned) VALUES ('".$Account->token."', '".$Account->name."', '".$Account->phone."', '".$Account->email."',0)";
     if ($conn->query($sql) === TRUE) {
         echo "ok";
     } else {
-        echo "";
+        echo "error";
+    }
+}else if($_GET["task"] == "giorgos"){
+    $sql = "SELECT * FROM Posts ORDER BY ID DESC LIMIT 0,3";
+    $result = $conn->query($sql);
+    if($result->num_rows > 0){
+        while($row = $result->fetch_assoc()){
+            echo $row["id"];
+        }
+    }
+}else if($_GET["task"] == "EditAccount"){
+    $Account = json_decode($_GET["value"]);
+    $sql = "SELECT * FROM Login WHERE token = '" . $Account->token ."'";
+    $result = $conn->query($sql);
+    if ($result->num_rows > 0) {
+        while($row = $result->fetch_assoc()) {
+            $sql = "UPDATE Login SET name = '".$Account->name."', email = '". $Account->email."', phone = '".$Account->phone."', banned = '".$row["banned"]."' WHERE id = '".$row["id"]."'";
+            if ($conn->query($sql) === TRUE) {
+                echo "ok";
+            } else {
+                echo "error";
+            }
+        }
     }
 }
 $conn->close();

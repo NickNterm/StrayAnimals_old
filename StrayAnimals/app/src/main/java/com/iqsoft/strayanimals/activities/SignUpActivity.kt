@@ -16,7 +16,6 @@ class SignUpActivity : AppCompatActivity(), MariaDBInterface {
     private lateinit var mariaDB: MariaDB
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val sharedPref = PreferenceManager.getDefaultSharedPreferences(this)
         setContentView(R.layout.sign_up_activity)
         setSupportActionBar(SignUpToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -30,10 +29,8 @@ class SignUpActivity : AppCompatActivity(), MariaDBInterface {
                 PhoneTextInput.error = "required!"
             } else if (EmailTextInput.editText?.text.isNullOrEmpty()) {
                 EmailTextInput.error = "required!"
-            }else{
-                val editor: SharedPreferences.Editor = sharedPref.edit()
-                editor.putString(Constants.sharedPrefToken,  intent.getStringExtra(Constants.IntentToken))
-                editor.apply()
+            } else {
+                Constants.changeLocalTokenTo(this, intent.getStringExtra(Constants.IntentToken)!!)
                 val createdAccount = Account(
                     intent.getStringExtra(Constants.IntentToken),
                     NameTextInput.editText?.text.toString(),
@@ -42,13 +39,13 @@ class SignUpActivity : AppCompatActivity(), MariaDBInterface {
                     null
                 )
                 mariaDB = MariaDB(this)
-                mariaDB.createAccount(createdAccount,this)
+                mariaDB.createAccount(createdAccount, this)
             }
         }
     }
 
     override fun createAccountCallback() {
-        val intent = Intent(this,MainActivity::class.java)
+        val intent = Intent(this, SplashScreen::class.java)
         startActivity(intent)
         finish()
     }

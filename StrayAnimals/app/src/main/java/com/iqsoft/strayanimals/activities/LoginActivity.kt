@@ -45,18 +45,18 @@ class LoginActivity : AppCompatActivity(), MariaDBInterface {
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso)
 
         sign_in_button.setOnClickListener { signIn() }
-        TestSave.setOnClickListener{
-
-
-            // generate random token for testing
-            val charPool : List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
-            this.token = "hrm3v8YYAH4DSGT"
-                //(1..15)
-                //.map { i -> kotlin.random.Random.nextInt(0, charPool.size) }
-                //.map(charPool::get)
-                //.joinToString("")
+        //this code is to skip login
+        // start
+        TestSave.setOnClickListener {
+            this.token = "ThisIsAToken"
             mariaDB.getAccount(this.token, this)
-
+        }
+        // end
+        LoginAsGuestButton.setOnClickListener {
+            Constants.changeLocalTokenTo(this, "guest")
+            val intent = Intent(this, SplashScreen::class.java)
+            startActivity(intent)
+            finish()
         }
     }
 
@@ -76,12 +76,11 @@ class LoginActivity : AppCompatActivity(), MariaDBInterface {
     }
 
     override fun getAccountCallback(acc: Account) {
-        val editor: SharedPreferences.Editor = sharedPref.edit()
-        editor.putString(Constants.sharedPrefToken,  acc.token)
-        editor.apply()
-        val intent = Intent(this, MainActivity::class.java)
+        Constants.changeLocalTokenTo(this, acc.token!!)
+        val intent = Intent(this, SplashScreen::class.java)
         intent.putExtra(Constants.IntentAccount, acc)
         startActivity(intent)
+        finish()
     }
 
     private fun signIn() {
@@ -105,15 +104,11 @@ class LoginActivity : AppCompatActivity(), MariaDBInterface {
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
         try {
             val account = completedTask.getResult(ApiException::class.java)
-
-            // Signed in successfully, show authenticated UI.
             if (account != null) {
                 Log.w("GotLogin", account.id.toString())
                 updateUI(account)
             }
         } catch (e: ApiException) {
-            // The ApiException status code indicates the detailed failure reason.
-            // Please refer to the GoogleSignInStatusCodes class reference for more information.
             Log.w("GotLogin", "signInResult:failed code=" + e.statusCode)
         }
     }

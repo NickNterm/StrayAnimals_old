@@ -1,23 +1,28 @@
 package com.iqsoft.strayanimals.fragments
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.iqsoft.strayanimals.Constants
 import com.iqsoft.strayanimals.R
+import com.iqsoft.strayanimals.activities.MainActivity
 import com.iqsoft.strayanimals.adapters.MainFeedRecycleViewAdapter
 import com.iqsoft.strayanimals.adapters.MariaDB
 import com.iqsoft.strayanimals.adapters.MariaDBInterface
 import com.iqsoft.strayanimals.models.Account
 import com.iqsoft.strayanimals.models.Post
 import kotlinx.android.synthetic.main.main_feed_fragment.view.*
+import java.lang.Exception
 import java.sql.Struct
 
-class MainFeedFragment : Fragment(), MariaDBInterface {
+class MainFeedFragment(private val con: Context) : Fragment(), MariaDBInterface {
     // TODO: Rename and change types of parameters
     private var posts: ArrayList<Post> = ArrayList()
     private var accounts: ArrayList<Account> = ArrayList()
@@ -29,45 +34,66 @@ class MainFeedFragment : Fragment(), MariaDBInterface {
         super.onCreate(savedInstanceState)
         arguments?.let {
             account = it.getParcelable(Constants.IntentAccount)
+            posts = it.getParcelableArrayList(Constants.IntentPosts)!!
+            accounts = it.getParcelableArrayList(Constants.IntentAccountArray)!!
         }
+        mariaDB = MariaDB(con)
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        mariaDB = context?.let { MariaDB(it) }!!
-        mariaDB.getPosts(this)
-        recyclerViewAdapter = context?.let { MainFeedRecycleViewAdapter(it,posts,accounts) }
+        recyclerViewAdapter = MainFeedRecycleViewAdapter(con,posts,accounts)
         val lf = requireActivity().layoutInflater
         val v: View = lf.inflate(R.layout.main_feed_fragment, container, false)
-        v.MainFeedRecycleView.layoutManager = LinearLayoutManager(context)
-        v.MainFeedRecycleView.adapter = recyclerViewAdapter
+        v.MainFeedFragmentRecycleView.layoutManager = LinearLayoutManager(context)
+        v.MainFeedFragmentRecycleView.adapter = recyclerViewAdapter
+        v.MainFeedFragmentSwipeToRefresh.setProgressBackgroundColorSchemeColor(resources.getColor(R.color.backgroundGray))
+        v.MainFeedFragmentSwipeToRefresh.setColorSchemeColors(
+            ContextCompat.getColor(con, R.color.accentColor),
+            ContextCompat.getColor(con, R.color.white)
+        )
+        v.MainFeedFragmentSwipeToRefresh.setOnRefreshListener {
+            mariaDB.getPosts(this)
+        }
+
         return v
     }
 
-    override fun postsRead(posts: ArrayList<Post>) {
-        this.posts.clear()
-        this.posts.addAll(posts)
+    override fun postsReadCallback(result: ArrayList<Post>) {
+        posts = result
         val accs = ArrayList<String>()
-        for(i in this.posts){
-            accs.add(i.accountId!!.toString())
+        for (i in result) {
+            accs.add(i.account_id!!.toString())
         }
-        accs.distinct()
-        mariaDB.getAccountById(accs,this)
+        var lastAccounts: ArrayList<String>
+        try {
+            lastAccounts = accs.distinct() as ArrayList<String>
+        }catch (e: Exception){
+            lastAccounts = ArrayList()
+            lastAccounts.add(accs[0])
+        }
+        mariaDB.getAccountById(lastAccounts, this)
     }
 
-    override fun accountRead(accounts: ArrayList<Account>) {
-        this.accounts.clear()
-        this.accounts.addAll(accounts)
-        recyclerViewAdapter?.notifyDataSetChanged()
+    override fun accountReadCallback(result: ArrayList<Account>) {
+        accounts = result
+        recyclerViewAdapter = MainFeedRecycleViewAdapter(con,posts,accounts)
+        (activity as MainActivity).postsList = posts
+        (activity as MainActivity).accountsList = accounts
+        view?.MainFeedFragmentRecycleView?.adapter = recyclerViewAdapter
+        view?.MainFeedFragmentSwipeToRefresh?.isRefreshing = false
     }
+
     companion object {
         @JvmStatic
-        fun newInstance(acc: Account) =
-            MainFeedFragment().apply {
+        fun newInstance(context: Context, acc: Account?, postList: ArrayList<Post>, accList: ArrayList<Account>) =
+            MainFeedFragment(context).apply {
                 arguments = Bundle().apply {
                     putParcelable(Constants.IntentAccount, acc)
+                    putParcelableArrayList(Constants.IntentPosts, postList)
+                    putParcelableArrayList(Constants.IntentAccountArray, accList)
                 }
             }
     }

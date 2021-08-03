@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/AccountFragmentEditOption"
+        android:title="Edit" />
+    <item android:id="@+id/AccountFragmentLogOutOption"
+        android:title="Log Out" />
+    <item android:id="@+id/AccountFragmentMoreInfoOption"
+        android:title="More Info" />
+</menu>

@@ -14,17 +14,24 @@ import android.view.View
 import android.view.Window
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.iqsoft.strayanimals.Constants
 import com.iqsoft.strayanimals.R
 import com.iqsoft.strayanimals.adapters.MariaDB
 import com.iqsoft.strayanimals.adapters.MariaDBInterface
 import com.iqsoft.strayanimals.models.Account
+import com.iqsoft.strayanimals.models.Post
+import kotlinx.android.synthetic.main.main_activity.*
 import kotlinx.android.synthetic.main.splash_screen_activity.*
+import java.lang.Exception
 
 
 class SplashScreen : AppCompatActivity(), MariaDBInterface {
     private lateinit var mariaDB: MariaDB
     private lateinit var sharedPref: SharedPreferences
+    private var myAccount: Account? = null
+    private lateinit var loadedPosts: ArrayList<Post>
+    private lateinit var loadedAccounts: ArrayList<Account>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.splash_screen_activity)
@@ -33,6 +40,7 @@ class SplashScreen : AppCompatActivity(), MariaDBInterface {
         SplashScreenNewAccountButton.setOnClickListener {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
+            finish()
         }
         SplashScreenRefreshButton.setOnClickListener {
             checkConnection()
@@ -50,10 +58,29 @@ class SplashScreen : AppCompatActivity(), MariaDBInterface {
         if (isConnected) {
             mariaDB = MariaDB(this)
             if (!sharedPref.getString(Constants.sharedPrefToken, "").isNullOrEmpty()) {
-                mariaDB.getAccount(sharedPref.getString(Constants.sharedPrefToken, "")!!, this)
+                if (sharedPref.getString(Constants.sharedPrefToken, "") == "guest") {
+                    if (!intent.getBooleanExtra("nowLogged", false)) {
+                        MaterialAlertDialogBuilder(this)
+                            .setTitle("Guest")
+                            .setCancelable(false)
+                            .setMessage("Do you still want to continue as guest?")
+                            .setNegativeButton("Continue") { dialog, _ ->
+                                mariaDB.getPosts(this)
+                            }
+                            .setPositiveButton("Log In") { _, _ ->
+                                Constants.changeLocalTokenTo(this, "")
+                                startActivity(Intent(this, SplashScreen::class.java))
+                                finish()
+                            }
+                            .show()
+                    }
+                } else {
+                    mariaDB.getAccount(sharedPref.getString(Constants.sharedPrefToken, "")!!, this)
+                }
             } else {
                 val intent = Intent(this, LoginActivity::class.java)
                 startActivity(intent)
+                finish()
             }
         } else {
             Toast.makeText(this, "No Connection", Toast.LENGTH_LONG).show()
@@ -62,9 +89,36 @@ class SplashScreen : AppCompatActivity(), MariaDBInterface {
     }
 
     override fun getAccountCallback(acc: Account) {
+        myAccount = acc
+        mariaDB.getPosts(this)
+    }
+
+    override fun postsReadCallback(posts: ArrayList<Post>) {
+        loadedPosts = posts
+        var accs = ArrayList<String>()
+        for (i in posts) {
+            accs.add(i.account_id!!.toString())
+        }
+        var lastAccounts: ArrayList<String>
+        try {
+            lastAccounts = accs.distinct() as ArrayList<String>
+        } catch (e: Exception) {
+            lastAccounts = ArrayList()
+            lastAccounts.add(accs[0])
+        }
+        mariaDB.getAccountById(lastAccounts, this)
+    }
+
+    override fun accountReadCallback(accounts: ArrayList<Account>) {
+        loadedAccounts = accounts
         val intent = Intent(this, MainActivity::class.java)
-        intent.putExtra(Constants.IntentAccount, acc)
+        if (myAccount != null) {
+            intent.putExtra(Constants.IntentAccount, myAccount)
+        }
+        intent.putExtra(Constants.IntentPosts, loadedPosts)
+        intent.putExtra(Constants.IntentAccountArray, loadedAccounts)
         startActivity(intent)
+        finish()
     }
 
     override fun accountBannedCallback(code: Int) {
